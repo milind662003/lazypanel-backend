@@ -1,6 +1,8 @@
 package com.milind.lazypanel.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -11,10 +13,6 @@ public class AuthController {
         return "PAGE";
     }
 
-    @GetMapping("/")
-    public String f() {
-        return "Logged in";
-    }
 
 
     @GetMapping("/gag")

@@ -1,4 +1,4 @@
-package com.milind.lazypanel.filtler;
+package com.milind.lazypanel.filter;
 
 import com.milind.lazypanel.services.implementations.JwtService;
 import jakarta.servlet.FilterChain;

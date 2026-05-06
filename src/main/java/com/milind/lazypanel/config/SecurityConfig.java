@@ -1,8 +1,6 @@
 package com.milind.lazypanel.config;
 
-import com.milind.lazypanel.filtler.JwtFilter;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
+import com.milind.lazypanel.filter.JwtFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,19 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
@@ -42,15 +35,17 @@ public class SecurityConfig {
         httpSecurity
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(r-> r
-                .requestMatchers("/").permitAll()
-                .anyRequest().authenticated()).oauth2Login(Customizer.withDefaults())
+                .anyRequest().authenticated())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2.failureHandler(((request, response, exception) -> {
                             log.error("Oauth2 error: {}", exception.getMessage());
-                        })
-                ).successHandler(oAuth2SuccessHandler)
-                );
+                        })).successHandler(oAuth2SuccessHandler)
+                        )
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        })));
         return httpSecurity.build();
     }
 
