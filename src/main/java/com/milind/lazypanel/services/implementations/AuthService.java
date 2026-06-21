@@ -28,7 +28,7 @@ public class AuthService {
     private SheetRepository sheetRepository;
 
     @Transactional
-    public ResponseEntity<LoginResponseDto> handleLogin(OAuth2User oAuth2User, UserTokenDto userTokenDto) {
+    public LoginResponseDto handleLogin(OAuth2User oAuth2User, UserTokenDto userTokenDto) {
         String email = oAuth2User.getAttribute("email");
         User user = userRepository.findByUsername(email);
 
@@ -39,13 +39,14 @@ public class AuthService {
         }
         LoginResponseDto loginResponse =  new LoginResponseDto(jwtService.generateToken(user.getUsername()),
                 user.getUsername(), "Login Successful");
+        //here ideally userService should handle everything including token storage through tokenService
         userTokenRepository.save(UserToken.builder()
                 .accessToken(userTokenDto.getAccessToken())
                 .expiresAt(userTokenDto.getExpiresAt())
                 .user(user)
                 .build());
 
-        return ResponseEntity.ok(loginResponse);
+        return loginResponse;
     }
 
     private User signUp(SignUpRequestDto signUpRequestDto) {
