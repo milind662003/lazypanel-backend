@@ -13,8 +13,6 @@ public class TokenService implements ITokenService {
 
     @Autowired
     private UserTokenRepository userTokenRepository;
-    @Autowired
-    private UserService userService;
     @Override
     public String getAccessTokenFromUserId(Long userId) {
         UserToken userToken = userTokenRepository.findByUserId(userId);

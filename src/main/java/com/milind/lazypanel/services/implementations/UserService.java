@@ -9,19 +9,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserService implements IUserService {
-    @Autowired
-    private JwtService jwtService;
-    @Autowired
-    private UserRepository userRepository;
 
-    @Override
-    public Long getUserIdFromJwt(String jwt) {
-        try {
-            String username = jwtService.extractUserName(jwt);
-            User user = userRepository.findByUsername(username);
-            return user.getId();
-        } catch (Exception e) {
-            throw new UsernameNotFoundException("User does not exist", e);
-        }
-    }
+
+
 }
