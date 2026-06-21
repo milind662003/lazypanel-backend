@@ -1,10 +1,7 @@
 package com.milind.lazypanel.services.implementations;
 
 import com.milind.lazypanel.constants.AppConstants;
-import com.milind.lazypanel.dto.SpreadsheetCreationDto;
-import com.milind.lazypanel.dto.SpreadsheetSetupDto;
-import com.milind.lazypanel.dto.SheetsResponseDto;
-import com.milind.lazypanel.dto.SheetsRowsDto;
+import com.milind.lazypanel.dto.*;
 import com.milind.lazypanel.models.UserSheet;
 import com.milind.lazypanel.repositories.SheetRepository;
 import com.milind.lazypanel.services.interfaces.IGoogleSheetsService;
@@ -14,9 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,8 +41,7 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     }
 
     @Override
-    public SheetsResponseDto getSheetDetails(String jwt) {
-        Long userId = userService.getUserIdFromJwt(jwt);
+    public SheetsResponseDto getSheetDetails(Long userId) {
         String token = tokenService.getAccessTokenFromUserId(userId);
         UserSheet sheet = sheetRepository.findByUserId(userId);
         return this.restClient.get().uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadheetId() + ":batchUpdate").build())
@@ -54,16 +50,28 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     }
 
     //as of now, it is only bounded to get the month from the current date, not the record details
+    //future upgrade: since it currently ignores everything that ain't this month (forced by the UI as well),
+    //later i can do a group by month then batchUpdate the sheets so multiple months are an option
     @Override
-    public SheetsResponseDto appendRowToSheet(String jwt, ArrayList<ArrayList<String>> rows) {
-        //get user id from jwt, then use user id to get sheet and access token, later it will be done through
-        //either pick date right here from first element or send month from ui
-        Long userId = userService.getUserIdFromJwt(jwt);
-        String token = tokenService.getAccessTokenFromUserId(userId);
+    public SheetsResponseDto appendRowToSheet(Long userId, ArrayList<AddExpenseRequestDto> expenses) {
         UserSheet sheet = sheetRepository.findByUserId(userId);
+        String token = tokenService.getAccessTokenFromUserId(userId);
 
-        String month = LocalDate.now().getMonth().name();
-        SheetsRowsDto sheetsRows = new SheetsRowsDto(rows);
+        String month = LocalDate.now().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        SheetRowsDto sheetsRows = new SheetRowsDto(new ArrayList<>());
+
+        for(AddExpenseRequestDto expense : expenses) {
+
+            if(!expense.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH).equals(month)) continue;
+
+            ArrayList<String> row = new ArrayList<>();
+            String formattedDate = expense.getDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            row.add(formattedDate);
+            row.add(expense.getDescription());
+            row.add(expense.getAmount() +"");
+            row.add(expense.getCategory());
+            sheetsRows.getValues().add(row);
+        }
         return this.restClient.post()
                 .uri(uriBuilder -> uriBuilder.path("/"+ sheet.getSpreadheetId() + "/values/" + month + "!A:D:append")
                 .queryParam("valueInputOption", "USER_ENTERED").build())
@@ -73,10 +81,9 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     }
 
     @Override
-    public SheetsResponseDto createAndSetupSheet(String jwt) {
+    public SheetsResponseDto createAndSetupSheet(Long userId) {
         //check if sheet already exists
         try{
-            Long userId = userService.getUserIdFromJwt(jwt);
             String token = tokenService.getAccessTokenFromUserId(userId);
             UserSheet sheet = sheetRepository.findByUserId(userId);
 
@@ -103,6 +110,37 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             System.out.println(e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    public Map<String, Double> getCurrentMonthExpenses(Long userId) {
+        int month = LocalDate.now().getMonth().getValue();
+        char col = (char) ('A'+month);
+        int rowStart = 2;
+        int rowEnd = CATEGORIES.length + 1;
+
+        try {
+            UserSheet sheet = sheetRepository.findByUserId(userId);
+            String token = tokenService.getAccessTokenFromUserId(userId);
+
+            SheetRowsDto response = this.restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadheetId() + "/values/" + col+rowStart + ":" + col+rowEnd).build())
+                    .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
+                    .retrieve().body(SheetRowsDto.class);
+            Map<String, Double> cardMap = new HashMap<>();
+
+            if(response.getValues()!=null && !response.getValues().isEmpty()) {
+                for(int i=0; i<CATEGORIES.length; i++) {
+                    cardMap.put(CATEGORIES[i].toLowerCase(), Double.parseDouble(response.getValues().get(i).get(0)));
+                }
+
+                return cardMap;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+
     }
 
     private SpreadsheetCreationDto getCreateSpreadsheetPayload() {
