@@ -7,8 +7,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
@@ -42,10 +43,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 //        String refreshToken = client.getRefreshToken().getTokenValue();
         Instant expiry = client.getAccessToken().getExpiresAt();
         UserTokenDto userTokenDto = new UserTokenDto(accessToken, "", expiry);
-        ResponseEntity<LoginResponseDto> loginResponse = authService.handleLogin(oAuth2User, userTokenDto);
+        LoginResponseDto loginResponse = authService.handleLogin(oAuth2User, userTokenDto);
 
-        response.setStatus(loginResponse.getStatusCode().value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(loginResponse.getBody()));
+        ResponseCookie responseCookie = ResponseCookie.from("access_token", loginResponse.getJwt())
+                .httpOnly(true).secure(false).path("/").sameSite("Lax").maxAge(Duration.ofDays(7)).build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());  
+        response.sendRedirect("http://localhost:3000/");
     }
 }
