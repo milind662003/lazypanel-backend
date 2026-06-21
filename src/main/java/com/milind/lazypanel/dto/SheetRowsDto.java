@@ -7,6 +7,6 @@ import java.util.ArrayList;
 
 @Data
 @AllArgsConstructor
-public class SheetsRowsDto {
-    public ArrayList<ArrayList<String>> values;
+public class SheetRowsDto {
+    private ArrayList<ArrayList<String>> values;
 }
