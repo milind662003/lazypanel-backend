@@ -7,6 +7,7 @@ import com.milind.lazypanel.repositories.SheetRepository;
 import com.milind.lazypanel.services.interfaces.IGoogleSheetsService;
 import com.milind.lazypanel.services.interfaces.ITokenService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -31,6 +32,8 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     @Autowired
     private SheetRepository sheetRepository;
 
+    @Value("${test.mysheetid}")
+    private String MY_SHEET_ID;
     private static final String[] MONTHS = {"January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"};
 
@@ -73,7 +76,7 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             sheetsRows.getValues().add(row);
         }
         return this.restClient.post()
-                .uri(uriBuilder -> uriBuilder.path("/"+ sheet.getSpreadheetId() + "/values/" + month + "!A:D:append")
+                .uri(uriBuilder -> uriBuilder.path("/"+ MY_SHEET_ID + "/values/" + month + "!A:D:append")
                 .queryParam("valueInputOption", "USER_ENTERED").build())
                 .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                 .body(sheetsRows)
@@ -99,12 +102,11 @@ public class GoogleSheetsService implements IGoogleSheetsService {
 
             String spreadsheetId = creationResponse.getSpreadsheetId();
             SpreadsheetSetupDto setupPayload = getSetupSpreadsheetPayload();
-            SheetsResponseDto setupResponse = this.restClient.post()
+            return this.restClient.post()
                     .uri(uriBuilder -> uriBuilder.path("/" + spreadsheetId + ":batchUpdate").build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .body(setupPayload)
                     .retrieve().body(SheetsResponseDto.class);
-            return setupResponse;
         }
         catch (Exception e) {
             System.out.println(e.getMessage());
@@ -124,7 +126,7 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             String token = tokenService.getAccessTokenFromUserId(userId);
 
             SheetRowsDto response = this.restClient.get()
-                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadheetId() + "/values/" + col+rowStart + ":" + col+rowEnd).build())
+                    .uri(uriBuilder -> uriBuilder.path("/" + MY_SHEET_ID + "/values/" + col+rowStart + ":" + col+rowEnd).build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .retrieve().body(SheetRowsDto.class);
             Map<String, Double> cardMap = new HashMap<>();

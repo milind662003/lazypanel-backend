@@ -1,12 +1,11 @@
 package com.milind.lazypanel.config;
 
-import com.milind.lazypanel.dto.LoginResponseDto;
 import com.milind.lazypanel.dto.UserTokenDto;
 import com.milind.lazypanel.services.implementations.AuthService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -16,22 +15,17 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    @Autowired
-    private AuthService authService;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+    private final AuthService authService;
+    private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
@@ -43,9 +37,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 //        String refreshToken = client.getRefreshToken().getTokenValue();
         Instant expiry = client.getAccessToken().getExpiresAt();
         UserTokenDto userTokenDto = new UserTokenDto(accessToken, "", expiry);
-        LoginResponseDto loginResponse = authService.handleLogin(oAuth2User, userTokenDto);
+        String jwt = authService.authenticate(oAuth2User, userTokenDto);
 
-        ResponseCookie responseCookie = ResponseCookie.from("access_token", loginResponse.getJwt())
+        ResponseCookie responseCookie = ResponseCookie.from("access_token", jwt)
                 .httpOnly(true).secure(false).path("/").sameSite("Lax").maxAge(Duration.ofDays(7)).build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());  
