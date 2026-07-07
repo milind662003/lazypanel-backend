@@ -26,7 +26,7 @@ public class AuthService {
             String lastName = oAuth2User.getAttribute("family_name");
             user = userService.signUpNewUser(email, firstName, lastName);
         }
-        tokenService.saveToken(user, userTokenDto);
+        tokenService.saveTokens(user, userTokenDto);
         return jwtService.generateToken(user.getUsername());
     }
 }

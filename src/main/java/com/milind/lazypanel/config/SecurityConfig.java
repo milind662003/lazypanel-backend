@@ -16,6 +16,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -26,7 +30,6 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@Slf4j
 public class SecurityConfig {
 
     @Autowired
@@ -37,7 +40,8 @@ public class SecurityConfig {
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity,
+                                                   OAuth2AuthorizationRequestResolver authorizationRequestResolver) {
         httpSecurity
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -45,9 +49,11 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(oauth2 -> oauth2.failureHandler(((request, response, exception) -> {
-                            log.error("Oauth2 error: {}", exception.getMessage());
-                        })).successHandler(oAuth2SuccessHandler)
+                .oauth2Login(oauth2 -> oauth2
+                                .authorizationEndpoint(auth -> auth
+                                        .authorizationRequestResolver(authorizationRequestResolver)
+                                )
+                                .successHandler(oAuth2SuccessHandler)
                         )
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(((request, response, authException) -> {
@@ -86,6 +92,23 @@ public class SecurityConfig {
         return source;
     }
 
+    @Bean
+    OAuth2AuthorizationRequestResolver authorizationRequestResolver(
+            ClientRegistrationRepository clientRegistrationRepository) {
+
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository,
+                        OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
+
+        resolver.setAuthorizationRequestCustomizer(customizer ->
+                customizer.additionalParameters(params -> {
+                    params.put("access_type", "offline");
+                    params.put("prompt", "consent");
+                }));
+
+        return resolver;
+    }
 }
 
 

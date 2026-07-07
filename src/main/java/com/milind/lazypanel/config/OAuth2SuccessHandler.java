@@ -34,9 +34,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         OAuth2AuthorizedClient client = oAuth2AuthorizedClientService.loadAuthorizedClient(
                 token.getAuthorizedClientRegistrationId(), token.getName());
         String accessToken = client.getAccessToken().getTokenValue();
-//        String refreshToken = client.getRefreshToken().getTokenValue();
         Instant expiry = client.getAccessToken().getExpiresAt();
-        UserTokenDto userTokenDto = new UserTokenDto(accessToken, "", expiry);
+        String refreshToken = client.getRefreshToken().getTokenValue();
+        UserTokenDto userTokenDto = new UserTokenDto(accessToken, refreshToken, expiry);
         String jwt = authService.authenticate(oAuth2User, userTokenDto);
 
         ResponseCookie responseCookie = ResponseCookie.from("access_token", jwt)

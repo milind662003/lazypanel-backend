@@ -3,6 +3,8 @@ package com.milind.lazypanel.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Getter
 @Setter
@@ -20,4 +22,6 @@ public class UserToken {
 
     @Column(columnDefinition = "TEXT")
     private String refreshToken;
+
+    private Instant expiry;
 }

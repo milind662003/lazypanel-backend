@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 @Service
 public class GoogleSheetsService implements IGoogleSheetsService {
 
-
     private final RestClient restClient;
 
     @Autowired
@@ -39,7 +38,6 @@ public class GoogleSheetsService implements IGoogleSheetsService {
 
     private static final String[] CATEGORIES = {"Essential", "Avoidable", "Fun", "Total"};
     public GoogleSheetsService(RestClient.Builder restClient) {
-        //i want to add token here itself instead of separately everytime an api is called - but how?
         this.restClient = restClient.baseUrl("https://sheets.googleapis.com/v4/spreadsheets").build();
     }
 

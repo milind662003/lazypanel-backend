@@ -6,5 +6,5 @@ import com.milind.lazypanel.models.User;
 public interface ITokenService {
     String getAccessTokenFromUserId(Long userId);
 
-    void saveToken(User user, UserTokenDto userTokenDto);
+    void saveTokens(User user, UserTokenDto userTokenDto);
 }
