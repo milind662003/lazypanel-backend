@@ -3,8 +3,6 @@ package com.milind.lazypanel.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-
 @Entity
 @Getter
 @Setter
@@ -20,5 +18,5 @@ public class UserSheet {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private String spreadheetId;
+    private String spreadsheetId;
 }

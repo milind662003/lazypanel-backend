@@ -26,7 +26,7 @@ public class TokenService implements ITokenService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
-    private  EncryptionService encryptionService;
+    private EncryptionService encryptionService;
     private final RestClient restClient;
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
@@ -39,18 +39,18 @@ public class TokenService implements ITokenService {
 
     @Override
     public String getAccessTokenFromUserId(Long userId) {
-        String token = stringRedisTemplate.opsForValue().get(userId+"_at");
-        if(token == null) {
+        String accessToken = stringRedisTemplate.opsForValue().get(userId + "_at");
+        if (accessToken == null) {
             UserToken userToken = userTokenRepository.findByUserId(userId);
             String refreshToken = encryptionService.decrypt(userToken.getRefreshToken());
 
             RefreshTokenResponseDto refreshTokenResponseDto = refreshAccessToken(refreshToken);
-            token = refreshTokenResponseDto.getAccess_token();
+            accessToken = refreshTokenResponseDto.getAccess_token();
             userToken.setExpiry(Instant.now().plusSeconds(refreshTokenResponseDto.getRefresh_token_expires_in()));
             userTokenRepository.save(userToken);
-            stringRedisTemplate.opsForValue().set(userId + "_at", token, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
+            stringRedisTemplate.opsForValue().set(userId + "_at", accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
         }
-        return token;
+        return accessToken;
     }
 
     private RefreshTokenResponseDto refreshAccessToken(String refreshToken) {
@@ -68,9 +68,15 @@ public class TokenService implements ITokenService {
 
     @Override
     public void saveTokens(User user, UserTokenDto userTokenDto) {
+        UserToken userToken = userTokenRepository.findByUserId(user.getId());
+        if (userToken == null) {
+            userToken = UserToken.builder().user(user).build();
+        }
         String encryptedRefreshToken = encryptionService.encrypt(userTokenDto.getRefreshToken());
-        userTokenRepository.save(UserToken.builder().user(user).refreshToken(encryptedRefreshToken).build());
-        Duration ttl = Duration.between(Instant.now(), userTokenDto.getExpiresAt()).minusSeconds(60);;
-        stringRedisTemplate.opsForValue().set(user.getId()+"_at", userTokenDto.getAccessToken(), ttl);
+        userToken.setRefreshToken(encryptedRefreshToken);
+        userTokenRepository.save(userToken);
+        Duration ttl = Duration.between(Instant.now(), userTokenDto.getExpiresAt()).minusSeconds(60);
+        ;
+        stringRedisTemplate.opsForValue().set(user.getId() + "_at", userTokenDto.getAccessToken(), ttl);
     }
 }

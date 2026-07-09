@@ -1,18 +1,20 @@
 package com.milind.lazypanel.services.interfaces;
 
 import com.milind.lazypanel.dto.AddExpenseRequestDto;
+import com.milind.lazypanel.dto.SheetStatusResponse;
 import com.milind.lazypanel.dto.SheetsResponseDto;
+import com.milind.lazypanel.models.User;
 
 import java.util.ArrayList;
 import java.util.Map;
 
 public interface IGoogleSheetsService {
 
-    SheetsResponseDto getSheetDetails(Long userId);
+    SheetStatusResponse getSheetStatus(Long userId);
 
     SheetsResponseDto appendRowToSheet(Long userId, ArrayList<AddExpenseRequestDto> expenses);
 
-    SheetsResponseDto createAndSetupSheet(Long userId);
+    SheetsResponseDto createAndSetupSheet(User user);
 
     Map<String, Double> getCurrentMonthExpenses(Long userId);
 }
