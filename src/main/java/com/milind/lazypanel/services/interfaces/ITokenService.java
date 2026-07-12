@@ -7,4 +7,6 @@ public interface ITokenService {
     String getAccessTokenFromUserId(Long userId);
 
     void saveTokens(User user, UserTokenDto userTokenDto);
+
+    void deleteTokens(Long userId);
 }

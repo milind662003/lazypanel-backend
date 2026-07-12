@@ -21,6 +21,7 @@ import java.time.Instant;
 
 @Service
 public class TokenService implements ITokenService {
+    private final String KEY_SUFFIX = "_at";
     @Autowired
     private UserTokenRepository userTokenRepository;
     @Autowired
@@ -34,12 +35,12 @@ public class TokenService implements ITokenService {
     private String clientSecret;
 
     public TokenService(RestClient.Builder restClient) {
-        this.restClient = restClient.baseUrl("https://oauth2.googleapis.com/token").build();
+        this.restClient = restClient.baseUrl("https://oauth2.googleapis.com").build();
     }
 
     @Override
     public String getAccessTokenFromUserId(Long userId) {
-        String accessToken = stringRedisTemplate.opsForValue().get(userId + "_at");
+        String accessToken = stringRedisTemplate.opsForValue().get(userId + KEY_SUFFIX);
         if (accessToken == null) {
             UserToken userToken = userTokenRepository.findByUserId(userId);
             String refreshToken = encryptionService.decrypt(userToken.getRefreshToken());
@@ -48,7 +49,7 @@ public class TokenService implements ITokenService {
             accessToken = refreshTokenResponseDto.getAccess_token();
             userToken.setExpiry(Instant.now().plusSeconds(refreshTokenResponseDto.getRefresh_token_expires_in()));
             userTokenRepository.save(userToken);
-            stringRedisTemplate.opsForValue().set(userId + "_at", accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
+            stringRedisTemplate.opsForValue().set(userId + KEY_SUFFIX, accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
         }
         return accessToken;
     }
@@ -60,7 +61,7 @@ public class TokenService implements ITokenService {
         map.add("refresh_token", refreshToken);
         map.add("grant_type", "refresh_token");
 
-        return this.restClient.post().contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        return this.restClient.post().uri("/token").contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(map)
                 .retrieve()
                 .body(RefreshTokenResponseDto.class);
@@ -76,7 +77,26 @@ public class TokenService implements ITokenService {
         userToken.setRefreshToken(encryptedRefreshToken);
         userTokenRepository.save(userToken);
         Duration ttl = Duration.between(Instant.now(), userTokenDto.getExpiresAt()).minusSeconds(60);
-        ;
-        stringRedisTemplate.opsForValue().set(user.getId() + "_at", userTokenDto.getAccessToken(), ttl);
+        stringRedisTemplate.opsForValue().set(user.getId() + KEY_SUFFIX, userTokenDto.getAccessToken(), ttl);
+    }
+
+    @Override
+    public void deleteTokens(Long userId) {
+        stringRedisTemplate.delete(userId + KEY_SUFFIX);
+        UserToken userToken = userTokenRepository.findByUserId(userId);
+        if (userToken == null) return;
+        String refreshToken = encryptionService.decrypt(userToken.getRefreshToken());
+
+        revokeRefreshToken(refreshToken);
+        userTokenRepository.delete(userToken);
+    }
+
+    private void revokeRefreshToken(String refreshToken) {
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("token", refreshToken);
+        this.restClient.post().uri("/revoke").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(map)
+                .retrieve()
+                .toBodilessEntity();
     }
 }
