@@ -2,6 +2,9 @@ package com.milind.lazypanel.services.implementations;
 
 import com.milind.lazypanel.dto.RefreshTokenResponseDto;
 import com.milind.lazypanel.dto.UserTokenDto;
+import com.milind.lazypanel.exception.GoogleTokenException;
+import com.milind.lazypanel.exception.ResourceNotFoundException;
+import com.milind.lazypanel.exception.TokenRefreshException;
 import com.milind.lazypanel.models.User;
 import com.milind.lazypanel.models.UserToken;
 import com.milind.lazypanel.repositories.UserTokenRepository;
@@ -10,11 +13,13 @@ import com.milind.lazypanel.services.interfaces.ITokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,13 +48,20 @@ public class TokenService implements ITokenService {
         String accessToken = stringRedisTemplate.opsForValue().get(userId + KEY_SUFFIX);
         if (accessToken == null) {
             UserToken userToken = userTokenRepository.findByUserId(userId);
+            if (userToken == null) {
+                throw new ResourceNotFoundException("User token not found.");
+            }
             String refreshToken = encryptionService.decrypt(userToken.getRefreshToken());
-
-            RefreshTokenResponseDto refreshTokenResponseDto = refreshAccessToken(refreshToken);
-            accessToken = refreshTokenResponseDto.getAccess_token();
-            userToken.setExpiry(Instant.now().plusSeconds(refreshTokenResponseDto.getRefresh_token_expires_in()));
-            userTokenRepository.save(userToken);
-            stringRedisTemplate.opsForValue().set(userId + KEY_SUFFIX, accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
+            try {
+                RefreshTokenResponseDto refreshTokenResponseDto = refreshAccessToken(refreshToken);
+                accessToken = refreshTokenResponseDto.getAccess_token();
+                userToken.setExpiry(Instant.now().plusSeconds(refreshTokenResponseDto.getRefresh_token_expires_in()));
+                userTokenRepository.save(userToken);
+                stringRedisTemplate.opsForValue().set(userId + KEY_SUFFIX, accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
+            } catch (TokenRefreshException e) {
+                userTokenRepository.deleteById(userToken.getId());
+                throw e;
+            }
         }
         return accessToken;
     }
@@ -61,10 +73,16 @@ public class TokenService implements ITokenService {
         map.add("refresh_token", refreshToken);
         map.add("grant_type", "refresh_token");
 
-        return this.restClient.post().uri("/token").contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(map)
-                .retrieve()
-                .body(RefreshTokenResponseDto.class);
+        try {
+            return this.restClient.post().uri("/token").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(map)
+                    .retrieve()
+                    .body(RefreshTokenResponseDto.class);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                throw new TokenRefreshException("Invalid refresh token.", e);
+            } else throw new GoogleTokenException("Failed to refresh Google access token.", e);
+        }
     }
 
     @Override
@@ -94,9 +112,13 @@ public class TokenService implements ITokenService {
     private void revokeRefreshToken(String refreshToken) {
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         map.add("token", refreshToken);
-        this.restClient.post().uri("/revoke").contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(map)
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            this.restClient.post().uri("/revoke").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(map)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            throw new GoogleTokenException("Failed to revoke Google refresh token.", e);
+        }
     }
 }

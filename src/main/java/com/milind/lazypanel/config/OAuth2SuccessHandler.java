@@ -2,12 +2,11 @@ package com.milind.lazypanel.config;
 
 import com.milind.lazypanel.dto.UserTokenDto;
 import com.milind.lazypanel.services.implementations.AuthService;
-import jakarta.servlet.ServletException;
+import com.milind.lazypanel.util.CookieUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -26,8 +25,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final AuthService authService;
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
@@ -39,10 +39,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         UserTokenDto userTokenDto = new UserTokenDto(accessToken, refreshToken, expiry);
         String jwt = authService.authenticate(oAuth2User, userTokenDto);
 
-        ResponseCookie responseCookie = ResponseCookie.from("access_token", jwt)
-                .httpOnly(true).secure(false).path("/").sameSite("Lax").maxAge(Duration.ofDays(7)).build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());  
+        response.addHeader(HttpHeaders.SET_COOKIE, CookieUtility.createAccessTokenCookie(jwt, Duration.ofDays(7)).toString());
         response.sendRedirect("http://localhost:3000/");
     }
 }

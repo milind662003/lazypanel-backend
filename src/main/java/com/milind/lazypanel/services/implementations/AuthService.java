@@ -28,7 +28,7 @@ public class AuthService {
         return jwtService.generateToken(user.getUsername());
     }
 
-    public void logout(User user) {
-        tokenService.deleteTokens(user.getId());
+    public void logout(Long userId) {
+        tokenService.deleteTokens(userId);
     }
 }

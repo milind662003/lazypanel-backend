@@ -57,7 +57,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                         })))
                 .logout(AbstractHttpConfigurer::disable);
         return httpSecurity.build();

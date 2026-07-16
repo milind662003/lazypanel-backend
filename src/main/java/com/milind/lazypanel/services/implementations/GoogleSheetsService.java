@@ -2,6 +2,8 @@ package com.milind.lazypanel.services.implementations;
 
 import com.milind.lazypanel.constants.AppConstants;
 import com.milind.lazypanel.dto.*;
+import com.milind.lazypanel.exception.GoogleSheetsException;
+import com.milind.lazypanel.exception.ResourceNotFoundException;
 import com.milind.lazypanel.models.User;
 import com.milind.lazypanel.models.UserSheet;
 import com.milind.lazypanel.repositories.SheetRepository;
@@ -11,6 +13,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -53,7 +56,9 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     @Override
     public SheetsResponseDto appendRowToSheet(Long userId, ArrayList<AddExpenseRequestDto> expenses) {
         UserSheet sheet = sheetRepository.findByUserId(userId);
-        String token = tokenService.getAccessTokenFromUserId(userId);
+        if (sheet == null) {
+            throw new ResourceNotFoundException("Sheet does not exist");
+        }
 
         String month = LocalDate.now().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
         SheetRowsDto sheetsRows = new SheetRowsDto(new ArrayList<>());
@@ -66,32 +71,39 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             String formattedDate = expense.getDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             row.add(formattedDate);
             row.add(expense.getDescription());
-            row.add(expense.getAmount() + "");
+            row.add(String.valueOf(expense.getAmount()));
             row.add(expense.getCategory());
             sheetsRows.getValues().add(row);
         }
-        return this.restClient.post()
-                .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + month + "!A:D:append")
-                        .queryParam("valueInputOption", "USER_ENTERED").build())
-                .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
-                .body(sheetsRows)
-                .retrieve().body(SheetsResponseDto.class);
+
+        String token = tokenService.getAccessTokenFromUserId(userId);
+        try {
+            return this.restClient.post()
+                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + month + "!A:D:append")
+                            .queryParam("valueInputOption", "USER_ENTERED").build())
+                    .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
+                    .body(sheetsRows)
+                    .retrieve().body(SheetsResponseDto.class);
+
+        } catch (RestClientResponseException e) {
+            throw new GoogleSheetsException("Failed to append rows to Google Sheet.", e);
+        }
     }
 
     @Override
     @Transactional
     public SheetsResponseDto createAndSetupSheet(User user) {
         //check if sheet already exists
-        try {
-            Long userId = user.getId();
-            UserSheet sheet = sheetRepository.findByUserId(userId);
+        Long userId = user.getId();
+        UserSheet sheet = sheetRepository.findByUserId(userId);
 
-            if (sheet != null) {
-                return new SheetsResponseDto(sheet.getSpreadsheetId());
-            }
-            String token = tokenService.getAccessTokenFromUserId(userId);
-            //as of now the sheet will be like jan - dec [year] but there might be a use case for FY [year] too
-            SpreadsheetCreationDto creationPayload = getCreateSpreadsheetPayload();
+        if (sheet != null) {
+            return new SheetsResponseDto(sheet.getSpreadsheetId());
+        }
+        String token = tokenService.getAccessTokenFromUserId(userId);
+        //as of now the sheet will be like jan - dec [year] but there might be a use case for FY [year] too
+        SpreadsheetCreationDto creationPayload = getCreateSpreadsheetPayload();
+        try {
             SheetsResponseDto creationResponse = this.restClient.post()
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .body(creationPayload)
@@ -106,22 +118,25 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             //save the sheet against the user, can't believe i missed this step
             sheetRepository.save(UserSheet.builder().spreadsheetId(spreadsheetId).user(user).build());
             return new SheetsResponseDto(spreadsheetId);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+        } catch (RestClientResponseException e) {
+            throw new GoogleSheetsException("Failed to setup Google Sheet.", e);
         }
-        return null;
     }
 
     @Override
     public Map<String, Double> getCurrentMonthExpenses(Long userId) {
+        UserSheet sheet = sheetRepository.findByUserId(userId);
+        if (sheet == null) {
+            throw new ResourceNotFoundException("Sheet does not exist");
+        }
+
         int month = LocalDate.now().getMonth().getValue();
         char col = (char) ('A' + month);
         int rowStart = 2;
         int rowEnd = CATEGORIES.length + 1;
 
+        String token = tokenService.getAccessTokenFromUserId(userId);
         try {
-            UserSheet sheet = sheetRepository.findByUserId(userId);
-            String token = tokenService.getAccessTokenFromUserId(userId);
 
             SheetRowsDto response = this.restClient.get()
                     .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + col + rowStart + ":" + col + rowEnd).build())
@@ -133,14 +148,11 @@ public class GoogleSheetsService implements IGoogleSheetsService {
                 for (int i = 0; i < CATEGORIES.length; i++) {
                     cardMap.put(CATEGORIES[i].toLowerCase(), Double.parseDouble(response.getValues().get(i).get(0)));
                 }
-
-                return cardMap;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            return cardMap;
+        } catch (RestClientResponseException e) {
+            throw new GoogleSheetsException("Failed to fetch current month expenses", e);
         }
-        return null;
-
     }
 
     private SpreadsheetCreationDto getCreateSpreadsheetPayload() {
