@@ -3,6 +3,7 @@ package com.milind.lazypanel.exception;
 import com.milind.lazypanel.dto.ErrorResponse;
 import com.milind.lazypanel.util.CookieUtility;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Duration;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> createErrorResponseEntity(HttpStatus status, String message) {
@@ -20,7 +22,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TokenRefreshException.class)
     public ResponseEntity<ErrorResponse> handleTokenRefreshException(TokenRefreshException e, HttpServletResponse response) {
-
+        log.error("Token refresh failed", e);
         response.addHeader(HttpHeaders.SET_COOKIE, CookieUtility.createAccessTokenCookie("", Duration.ZERO).toString());
 
         return createErrorResponseEntity(HttpStatus.UNAUTHORIZED, e.getMessage());
@@ -28,21 +30,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException e) {
+        log.error("Requested resource not found", e);
         return createErrorResponseEntity(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(GoogleSheetsException.class)
     public ResponseEntity<ErrorResponse> handleGoogleSheetsException(GoogleSheetsException e) {
+        log.error("Google Sheets operation failed", e);
         return createErrorResponseEntity(HttpStatus.BAD_GATEWAY, e.getMessage());
     }
 
     @ExceptionHandler(GoogleTokenException.class)
     public ResponseEntity<ErrorResponse> handleGoogleTokenException(GoogleTokenException e) {
+        log.error("Google token operation failed", e);
         return createErrorResponseEntity(HttpStatus.BAD_GATEWAY, e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
+        log.error("Unexpected exception", e);
         return createErrorResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
     }
 }

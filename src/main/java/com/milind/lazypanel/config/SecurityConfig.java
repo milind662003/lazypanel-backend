@@ -2,6 +2,7 @@ package com.milind.lazypanel.config;
 
 import com.milind.lazypanel.filter.JwtFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
 
     @Autowired
@@ -57,6 +59,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(((request, response, authException) -> {
+                            log.warn("Unauthorized request to {}: {}", request.getRequestURI(), authException.getMessage());
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                         })))
                 .logout(AbstractHttpConfigurer::disable);

@@ -10,6 +10,7 @@ import com.milind.lazypanel.repositories.SheetRepository;
 import com.milind.lazypanel.services.interfaces.IGoogleSheetsService;
 import com.milind.lazypanel.services.interfaces.ITokenService;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -22,6 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class GoogleSheetsService implements IGoogleSheetsService {
 
     private final RestClient restClient;
@@ -55,8 +57,10 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     //later i can do a group by month then batchUpdate the sheets so multiple months are an option
     @Override
     public SheetsResponseDto appendRowToSheet(Long userId, ArrayList<AddExpenseRequestDto> expenses) {
+        log.debug("Appending {} expense(s) to Google Sheet for userId {}", expenses.size(), userId);
         UserSheet sheet = sheetRepository.findByUserId(userId);
         if (sheet == null) {
+            log.warn("UserId {} has no configured Google Sheet", userId);
             throw new ResourceNotFoundException("Sheet does not exist");
         }
 
@@ -75,16 +79,18 @@ public class GoogleSheetsService implements IGoogleSheetsService {
             row.add(expense.getCategory());
             sheetsRows.getValues().add(row);
         }
-
+        //need to add a check for 0 rows, but again that's unlikely to happen so it will be a warn log
+        log.debug("Appending {} expense(s) for month {}", sheetsRows.getValues().size(), month);
         String token = tokenService.getAccessTokenFromUserId(userId);
         try {
-            return this.restClient.post()
+            SheetsResponseDto response = this.restClient.post()
                     .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + month + "!A:D:append")
                             .queryParam("valueInputOption", "USER_ENTERED").build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .body(sheetsRows)
                     .retrieve().body(SheetsResponseDto.class);
-
+            log.info("Successfully appended {} row(s) to Google Sheet for userId {}", sheetsRows.getValues().size(), userId);
+            return response;
         } catch (RestClientResponseException e) {
             throw new GoogleSheetsException("Failed to append rows to Google Sheet.", e);
         }
@@ -95,9 +101,11 @@ public class GoogleSheetsService implements IGoogleSheetsService {
     public SheetsResponseDto createAndSetupSheet(User user) {
         //check if sheet already exists
         Long userId = user.getId();
+        log.info("Creating Google Sheet for userId {}", userId);
         UserSheet sheet = sheetRepository.findByUserId(userId);
 
         if (sheet != null) {
+            log.warn("Google Sheet already exists for userId {}", userId);
             return new SheetsResponseDto(sheet.getSpreadsheetId());
         }
         String token = tokenService.getAccessTokenFromUserId(userId);
@@ -109,12 +117,14 @@ public class GoogleSheetsService implements IGoogleSheetsService {
                     .body(creationPayload)
                     .retrieve().body(SheetsResponseDto.class);
             String spreadsheetId = creationResponse.getSpreadsheetId();
+            log.info("Successfully created Google Sheet {} for userId {}", spreadsheetId, userId);
             SpreadsheetSetupDto setupPayload = getSetupSpreadsheetPayload();
             this.restClient.post()
                     .uri(uriBuilder -> uriBuilder.path("/" + spreadsheetId + ":batchUpdate").build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .body(setupPayload)
                     .retrieve().body(SheetsResponseDto.class);
+            log.info("Successfully configured Google Sheet for userId {}", userId);
             //save the sheet against the user, can't believe i missed this step
             sheetRepository.save(UserSheet.builder().spreadsheetId(spreadsheetId).user(user).build());
             return new SheetsResponseDto(spreadsheetId);
@@ -137,11 +147,13 @@ public class GoogleSheetsService implements IGoogleSheetsService {
 
         String token = tokenService.getAccessTokenFromUserId(userId);
         try {
-
             SheetRowsDto response = this.restClient.get()
                     .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + col + rowStart + ":" + col + rowEnd).build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .retrieve().body(SheetRowsDto.class);
+            if (response.getValues() == null || response.getValues().isEmpty()) {
+                log.warn("No expense summary found for current month for userId {}", userId);
+            }
             Map<String, Double> cardMap = new HashMap<>();
 
             if (response.getValues() != null && !response.getValues().isEmpty()) {
