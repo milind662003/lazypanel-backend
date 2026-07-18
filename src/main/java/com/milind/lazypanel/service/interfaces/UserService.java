@@ -2,7 +2,7 @@ package com.milind.lazypanel.service.interfaces;
 
 import com.milind.lazypanel.model.User;
 
-public interface IUserService {
+public interface UserService {
 
     User getUserByUsername(String email);
 

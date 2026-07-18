@@ -9,7 +9,7 @@ import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.model.UserToken;
 import com.milind.lazypanel.repository.UserTokenRepository;
 import com.milind.lazypanel.service.interfaces.EncryptionService;
-import com.milind.lazypanel.service.interfaces.ITokenService;
+import com.milind.lazypanel.service.interfaces.TokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +27,7 @@ import java.time.Instant;
 
 @Service
 @Slf4j
-public class TokenService implements ITokenService {
+public class TokenServiceImpl implements TokenService {
     private final String KEY_SUFFIX = "_at";
     @Autowired
     private UserTokenRepository userTokenRepository;
@@ -41,7 +41,7 @@ public class TokenService implements ITokenService {
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String clientSecret;
 
-    public TokenService(RestClient.Builder restClient) {
+    public TokenServiceImpl(RestClient.Builder restClient) {
         this.restClient = restClient.baseUrl("https://oauth2.googleapis.com").build();
     }
 

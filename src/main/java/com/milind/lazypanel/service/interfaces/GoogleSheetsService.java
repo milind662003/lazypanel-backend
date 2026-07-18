@@ -8,7 +8,7 @@ import com.milind.lazypanel.model.User;
 import java.util.ArrayList;
 import java.util.Map;
 
-public interface IGoogleSheetsService {
+public interface GoogleSheetsService {
 
     SheetStatusResponse getSheetStatus(Long userId);
 

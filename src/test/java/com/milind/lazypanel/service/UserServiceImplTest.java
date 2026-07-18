@@ -2,7 +2,7 @@ package com.milind.lazypanel.service;
 
 import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.repository.UserRepository;
-import com.milind.lazypanel.service.implementations.UserService;
+import com.milind.lazypanel.service.implementations.UserServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,13 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
 
     @InjectMocks
-    private UserService userService;
+    private UserServiceImpl userService;
 
     @Test
     void shouldCreateUserWithCorrectFields() {

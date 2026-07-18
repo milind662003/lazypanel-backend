@@ -2,7 +2,7 @@ package com.milind.lazypanel.service;
 
 import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.service.implementations.UserDetailsCustomService;
-import com.milind.lazypanel.service.implementations.UserService;
+import com.milind.lazypanel.service.implementations.UserServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 class UserDetailsCustomServiceTest {
 
     @Mock
-    private UserService userService;
+    private UserServiceImpl userService;
 
     @InjectMocks
     private UserDetailsCustomService userDetailsCustomService;

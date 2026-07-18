@@ -3,7 +3,7 @@ package com.milind.lazypanel.service.interfaces;
 import com.milind.lazypanel.dto.UserTokenDto;
 import com.milind.lazypanel.model.User;
 
-public interface ITokenService {
+public interface TokenService {
     String getAccessTokenFromUserId(Long userId);
 
     void saveTokens(User user, UserTokenDto userTokenDto);

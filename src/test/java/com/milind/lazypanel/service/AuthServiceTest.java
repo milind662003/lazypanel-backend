@@ -5,8 +5,8 @@ import com.milind.lazypanel.dto.UserTokenDto;
 import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.service.implementations.AuthService;
 import com.milind.lazypanel.service.implementations.JwtService;
-import com.milind.lazypanel.service.implementations.TokenService;
-import com.milind.lazypanel.service.implementations.UserService;
+import com.milind.lazypanel.service.implementations.TokenServiceImpl;
+import com.milind.lazypanel.service.implementations.UserServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,13 +24,13 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     @Mock
-    private UserService userService;
+    private UserServiceImpl userService;
 
     @Mock
     private JwtService jwtService;
 
     @Mock
-    private TokenService tokenService;
+    private TokenServiceImpl tokenService;
 
     @Mock
     private OAuth2User oAuth2User;

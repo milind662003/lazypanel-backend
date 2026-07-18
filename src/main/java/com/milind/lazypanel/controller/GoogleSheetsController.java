@@ -4,7 +4,7 @@ import com.milind.lazypanel.dto.AddExpenseRequestDto;
 import com.milind.lazypanel.dto.SheetStatusResponse;
 import com.milind.lazypanel.dto.SheetsResponseDto;
 import com.milind.lazypanel.model.User;
-import com.milind.lazypanel.service.interfaces.IGoogleSheetsService;
+import com.milind.lazypanel.service.interfaces.GoogleSheetsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class GoogleSheetsController {
 
     @Autowired
-    private IGoogleSheetsService googleSheetsService;
+    private GoogleSheetsService googleSheetsService;
 
     @GetMapping("/getSheetStatus")
     public ResponseEntity<SheetStatusResponse> getSheetStatus(@AuthenticationPrincipal User user) {

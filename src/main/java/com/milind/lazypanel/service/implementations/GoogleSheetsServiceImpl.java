@@ -7,8 +7,8 @@ import com.milind.lazypanel.exception.ResourceNotFoundException;
 import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.model.UserSheet;
 import com.milind.lazypanel.repository.SheetRepository;
-import com.milind.lazypanel.service.interfaces.IGoogleSheetsService;
-import com.milind.lazypanel.service.interfaces.ITokenService;
+import com.milind.lazypanel.service.interfaces.GoogleSheetsService;
+import com.milind.lazypanel.service.interfaces.TokenService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,15 +24,15 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class GoogleSheetsService implements IGoogleSheetsService {
+public class GoogleSheetsServiceImpl implements GoogleSheetsService {
 
     private final RestClient restClient;
 
     @Autowired
-    private ITokenService tokenService;
+    private TokenService tokenService;
 
     @Autowired
-    private UserService userService;
+    private UserServiceImpl userService;
 
     @Autowired
     private SheetRepository sheetRepository;
@@ -42,7 +42,7 @@ public class GoogleSheetsService implements IGoogleSheetsService {
 
     private static final String[] CATEGORIES = {"Essential", "Avoidable", "Fun", "Total"};
 
-    public GoogleSheetsService(RestClient.Builder restClient) {
+    public GoogleSheetsServiceImpl(RestClient.Builder restClient) {
         this.restClient = restClient.baseUrl("https://sheets.googleapis.com/v4/spreadsheets").build();
     }
 

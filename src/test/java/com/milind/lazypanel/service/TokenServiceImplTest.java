@@ -2,7 +2,7 @@ package com.milind.lazypanel.service;
 
 import com.milind.lazypanel.exception.ResourceNotFoundException;
 import com.milind.lazypanel.repository.UserTokenRepository;
-import com.milind.lazypanel.service.implementations.TokenService;
+import com.milind.lazypanel.service.implementations.TokenServiceImpl;
 import com.milind.lazypanel.service.interfaces.EncryptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TokenServiceTest {
+class TokenServiceImplTest {
 
     @Mock
     private UserTokenRepository userTokenRepository;
@@ -39,7 +39,7 @@ class TokenServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
-    private TokenService tokenService;
+    private TokenServiceImpl tokenService;
 
     @BeforeEach
     void setUp() {
@@ -50,7 +50,7 @@ class TokenServiceTest {
         when(restClientBuilder.build())
                 .thenReturn(restClient);
 
-        tokenService = new TokenService(restClientBuilder);
+        tokenService = new TokenServiceImpl(restClientBuilder);
 
         ReflectionTestUtils.setField(
                 tokenService,

@@ -6,8 +6,8 @@ import com.milind.lazypanel.exception.ResourceNotFoundException;
 import com.milind.lazypanel.model.User;
 import com.milind.lazypanel.model.UserSheet;
 import com.milind.lazypanel.repository.SheetRepository;
-import com.milind.lazypanel.service.implementations.GoogleSheetsService;
-import com.milind.lazypanel.service.implementations.TokenService;
+import com.milind.lazypanel.service.implementations.GoogleSheetsServiceImpl;
+import com.milind.lazypanel.service.implementations.TokenServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,13 +22,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class GoogleSheetsServiceTest {
+class GoogleSheetsServiceImplTest {
 
     @Mock
     private SheetRepository sheetRepository;
 
     @Mock
-    private TokenService tokenService;
+    private TokenServiceImpl tokenService;
 
     @Mock
     private RestClient.Builder restClientBuilder;
@@ -36,7 +36,7 @@ class GoogleSheetsServiceTest {
     @Mock
     private RestClient restClient;
 
-    private GoogleSheetsService googleSheetsService;
+    private GoogleSheetsServiceImpl googleSheetsService;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +47,7 @@ class GoogleSheetsServiceTest {
         when(restClientBuilder.build())
                 .thenReturn(restClient);
 
-        googleSheetsService = new GoogleSheetsService(restClientBuilder);
+        googleSheetsService = new GoogleSheetsServiceImpl(restClientBuilder);
 
         ReflectionTestUtils.setField(
                 googleSheetsService,

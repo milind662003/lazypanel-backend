@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
-    private final UserService userService;
+    private final UserServiceImpl userService;
     private final JwtService jwtService;
-    private final TokenService tokenService;
+    private final TokenServiceImpl tokenService;
 
     @Transactional
     public String authenticate(OAuth2User oAuth2User, UserTokenDto userTokenDto) {
