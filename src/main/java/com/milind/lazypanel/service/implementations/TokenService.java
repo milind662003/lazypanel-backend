@@ -1,15 +1,15 @@
-package com.milind.lazypanel.services.implementations;
+package com.milind.lazypanel.service.implementations;
 
 import com.milind.lazypanel.dto.RefreshTokenResponseDto;
 import com.milind.lazypanel.dto.UserTokenDto;
 import com.milind.lazypanel.exception.GoogleTokenException;
 import com.milind.lazypanel.exception.ResourceNotFoundException;
 import com.milind.lazypanel.exception.TokenRefreshException;
-import com.milind.lazypanel.models.User;
-import com.milind.lazypanel.models.UserToken;
-import com.milind.lazypanel.repositories.UserTokenRepository;
-import com.milind.lazypanel.services.interfaces.EncryptionService;
-import com.milind.lazypanel.services.interfaces.ITokenService;
+import com.milind.lazypanel.model.User;
+import com.milind.lazypanel.model.UserToken;
+import com.milind.lazypanel.repository.UserTokenRepository;
+import com.milind.lazypanel.service.interfaces.EncryptionService;
+import com.milind.lazypanel.service.interfaces.ITokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

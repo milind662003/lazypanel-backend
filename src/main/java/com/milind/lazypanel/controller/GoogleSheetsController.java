@@ -1,10 +1,10 @@
-package com.milind.lazypanel.controllers;
+package com.milind.lazypanel.controller;
 
 import com.milind.lazypanel.dto.AddExpenseRequestDto;
 import com.milind.lazypanel.dto.SheetStatusResponse;
 import com.milind.lazypanel.dto.SheetsResponseDto;
-import com.milind.lazypanel.models.User;
-import com.milind.lazypanel.services.interfaces.IGoogleSheetsService;
+import com.milind.lazypanel.model.User;
+import com.milind.lazypanel.service.interfaces.IGoogleSheetsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

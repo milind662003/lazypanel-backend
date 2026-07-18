@@ -1,15 +1,17 @@
-package com.milind.lazypanel.services.implementations;
+package com.milind.lazypanel.service.implementations;
 
 import com.milind.lazypanel.exception.EncryptionException;
-import com.milind.lazypanel.services.interfaces.EncryptionService;
+import com.milind.lazypanel.service.interfaces.EncryptionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.*;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -19,10 +21,12 @@ public class AesEncryptionService implements EncryptionService {
     private final SecretKey secretKey;
     private static final int TAG_LENGTH = 128;
     private static final int IV_LENGTH = 12;
+
     public AesEncryptionService(@Value("${aes.secretKey}") String base64Key) {
         byte[] keyBytes = Base64.getDecoder().decode(base64Key);
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }
+
     @Override
     public String encrypt(String plainText) {
         try {
@@ -31,7 +35,7 @@ public class AesEncryptionService implements EncryptionService {
             GCMParameterSpec iv = new GCMParameterSpec(TAG_LENGTH, ivBytes);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
             byte[] cipherText = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-            byte[] ivPrependedCipherText = new byte[ivBytes.length+cipherText.length];
+            byte[] ivPrependedCipherText = new byte[ivBytes.length + cipherText.length];
             System.arraycopy(ivBytes, 0, ivPrependedCipherText, 0, IV_LENGTH);
             System.arraycopy(cipherText, 0, ivPrependedCipherText, IV_LENGTH, cipherText.length);
             return Base64.getEncoder()

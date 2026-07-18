@@ -1,6 +1,6 @@
-package com.milind.lazypanel.repositories;
+package com.milind.lazypanel.repository;
 
-import com.milind.lazypanel.models.UserSheet;
+import com.milind.lazypanel.model.UserSheet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

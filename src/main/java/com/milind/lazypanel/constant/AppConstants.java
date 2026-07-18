@@ -1,4 +1,4 @@
-package com.milind.lazypanel.constants;
+package com.milind.lazypanel.constant;
 
 public final class AppConstants {
     public static final String AUTHORIZATION = "Authorization";

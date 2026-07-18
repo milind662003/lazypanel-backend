@@ -1,6 +1,6 @@
-package com.milind.lazypanel.controllers;
+package com.milind.lazypanel.controller;
 
-import com.milind.lazypanel.models.User;
+import com.milind.lazypanel.model.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

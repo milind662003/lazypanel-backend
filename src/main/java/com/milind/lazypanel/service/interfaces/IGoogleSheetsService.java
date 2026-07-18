@@ -1,9 +1,9 @@
-package com.milind.lazypanel.services.interfaces;
+package com.milind.lazypanel.service.interfaces;
 
 import com.milind.lazypanel.dto.AddExpenseRequestDto;
 import com.milind.lazypanel.dto.SheetStatusResponse;
 import com.milind.lazypanel.dto.SheetsResponseDto;
-import com.milind.lazypanel.models.User;
+import com.milind.lazypanel.model.User;
 
 import java.util.ArrayList;
 import java.util.Map;

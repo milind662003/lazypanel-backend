@@ -1,7 +1,7 @@
 package com.milind.lazypanel.filter;
 
-import com.milind.lazypanel.constants.AppConstants;
-import com.milind.lazypanel.services.implementations.JwtService;
+import com.milind.lazypanel.constant.AppConstants;
+import com.milind.lazypanel.service.implementations.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -42,13 +42,13 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         String username = null;
 
-        if(token!=null) {
+        if (token != null) {
             username = jwtService.extractUserName(token);
         }
 
-        if(username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if(jwtService.validateToken(token)) {
+            if (jwtService.validateToken(token)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);

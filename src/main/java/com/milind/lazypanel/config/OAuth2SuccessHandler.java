@@ -1,7 +1,7 @@
 package com.milind.lazypanel.config;
 
 import com.milind.lazypanel.dto.UserTokenDto;
-import com.milind.lazypanel.services.implementations.AuthService;
+import com.milind.lazypanel.service.implementations.AuthService;
 import com.milind.lazypanel.util.CookieUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

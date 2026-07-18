@@ -1,4 +1,4 @@
-package com.milind.lazypanel.models;
+package com.milind.lazypanel.model;
 
 import jakarta.persistence.*;
 import lombok.*;

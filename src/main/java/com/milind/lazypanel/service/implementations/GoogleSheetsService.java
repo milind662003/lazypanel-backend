@@ -1,14 +1,14 @@
-package com.milind.lazypanel.services.implementations;
+package com.milind.lazypanel.service.implementations;
 
-import com.milind.lazypanel.constants.AppConstants;
+import com.milind.lazypanel.constant.AppConstants;
 import com.milind.lazypanel.dto.*;
 import com.milind.lazypanel.exception.GoogleSheetsException;
 import com.milind.lazypanel.exception.ResourceNotFoundException;
-import com.milind.lazypanel.models.User;
-import com.milind.lazypanel.models.UserSheet;
-import com.milind.lazypanel.repositories.SheetRepository;
-import com.milind.lazypanel.services.interfaces.IGoogleSheetsService;
-import com.milind.lazypanel.services.interfaces.ITokenService;
+import com.milind.lazypanel.model.User;
+import com.milind.lazypanel.model.UserSheet;
+import com.milind.lazypanel.repository.SheetRepository;
+import com.milind.lazypanel.service.interfaces.IGoogleSheetsService;
+import com.milind.lazypanel.service.interfaces.ITokenService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

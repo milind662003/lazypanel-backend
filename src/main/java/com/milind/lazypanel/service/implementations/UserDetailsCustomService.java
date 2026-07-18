@@ -1,6 +1,6 @@
-package com.milind.lazypanel.services.implementations;
+package com.milind.lazypanel.service.implementations;
 
-import com.milind.lazypanel.models.User;
+import com.milind.lazypanel.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

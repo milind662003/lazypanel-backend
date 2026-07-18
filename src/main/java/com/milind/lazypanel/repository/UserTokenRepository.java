@@ -1,6 +1,6 @@
-package com.milind.lazypanel.repositories;
+package com.milind.lazypanel.repository;
 
-import com.milind.lazypanel.models.UserToken;
+import com.milind.lazypanel.model.UserToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

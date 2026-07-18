@@ -1,7 +1,7 @@
-package com.milind.lazypanel.services.interfaces;
+package com.milind.lazypanel.service.interfaces;
 
 import com.milind.lazypanel.dto.UserTokenDto;
-import com.milind.lazypanel.models.User;
+import com.milind.lazypanel.model.User;
 
 public interface ITokenService {
     String getAccessTokenFromUserId(Long userId);

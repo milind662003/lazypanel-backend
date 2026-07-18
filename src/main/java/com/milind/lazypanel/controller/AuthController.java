@@ -1,7 +1,7 @@
-package com.milind.lazypanel.controllers;
+package com.milind.lazypanel.controller;
 
-import com.milind.lazypanel.models.User;
-import com.milind.lazypanel.services.implementations.AuthService;
+import com.milind.lazypanel.model.User;
+import com.milind.lazypanel.service.implementations.AuthService;
 import com.milind.lazypanel.util.CookieUtility;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
