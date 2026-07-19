@@ -6,6 +6,7 @@ import com.milind.lazypanel.util.CookieUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -25,6 +26,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final AuthService authService;
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+    @Value("${cors.allowed-origin}")
+    private String redirectUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -40,6 +43,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String jwt = authService.authenticate(oAuth2User, userTokenDto);
 
         response.addHeader(HttpHeaders.SET_COOKIE, CookieUtility.createAccessTokenCookie(jwt, Duration.ofDays(7)).toString());
-        response.sendRedirect("http://localhost:3000/");
+        response.sendRedirect(redirectUrl);
     }
 }
