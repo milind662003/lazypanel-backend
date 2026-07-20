@@ -14,8 +14,8 @@ public final class CookieUtility {
 
         return ResponseCookie.from("access_token", jwt)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(maxAge)
                 .build();
