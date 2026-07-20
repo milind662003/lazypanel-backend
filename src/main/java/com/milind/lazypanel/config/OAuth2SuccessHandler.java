@@ -43,6 +43,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String jwt = authService.authenticate(oAuth2User, userTokenDto);
 
         response.addHeader(HttpHeaders.SET_COOKIE, CookieUtility.createAccessTokenCookie(jwt, Duration.ofDays(7)).toString());
-        response.sendRedirect(redirectUrl);
+        response.sendRedirect(redirectUrl + "/dashboard");
     }
 }
