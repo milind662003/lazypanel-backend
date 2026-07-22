@@ -171,7 +171,7 @@ public class GoogleSheetsServiceImpl implements GoogleSheetsService {
         SpreadsheetCreationDto sheetCreationDto = SpreadsheetCreationDto.builder()
                 .properties(
                         SpreadsheetCreationDto.Properties.builder()
-                                .title("2026 Expenditure")
+                                .title("2026 Expenditure (LazyPanel)")
                                 .build()
                 )
                 .sheets(new ArrayList<>(List.of(
