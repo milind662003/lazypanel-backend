@@ -8,5 +8,4 @@ import lombok.Data;
 public class RefreshTokenResponseDto {
     private String access_token;
     private int expires_in;
-    private int refresh_token_expires_in;
 }
