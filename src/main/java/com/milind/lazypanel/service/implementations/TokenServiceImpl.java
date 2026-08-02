@@ -59,7 +59,6 @@ public class TokenServiceImpl implements TokenService {
             try {
                 RefreshTokenResponseDto refreshTokenResponseDto = refreshAccessToken(refreshToken);
                 accessToken = refreshTokenResponseDto.getAccess_token();
-                userToken.setExpiry(Instant.now().plusSeconds(refreshTokenResponseDto.getRefresh_token_expires_in()));
                 userTokenRepository.save(userToken);
                 stringRedisTemplate.opsForValue().set(userId + KEY_SUFFIX, accessToken, Duration.ofSeconds(refreshTokenResponseDto.getExpires_in() - 60));
 
