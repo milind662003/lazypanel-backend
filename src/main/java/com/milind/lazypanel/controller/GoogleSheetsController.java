@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,8 +42,8 @@ public class GoogleSheetsController {
     }
 
     @GetMapping("/card")
-    public ResponseEntity<Map<String, Double>> getCurrentMonthTotal(@AuthenticationPrincipal User user) {
-        Map<String, Double> response = googleSheetsService.getCurrentMonthExpenses(user.getId());
+    public ResponseEntity<List<Map<String, Double>>> getCurrentMonthTotal(@AuthenticationPrincipal User user) {
+        List<Map<String, Double>> response = googleSheetsService.getCurrentMonthExpenses(user.getId());
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

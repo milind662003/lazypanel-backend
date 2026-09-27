@@ -15,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriBuilder;
 
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
@@ -52,9 +52,6 @@ public class GoogleSheetsServiceImpl implements GoogleSheetsService {
         return new SheetStatusResponse(sheet != null);
     }
 
-    //as of now, it is bound to get the month from the current date, not the record details
-    //future upgrade: since it currently ignores everything that ain't this month (forced by the UI as well),
-    //later i can do a group by month then batchUpdate the sheets so multiple months are an option
     @Override
     public SheetsResponseDto appendRowToSheet(Long userId, ArrayList<AddExpenseRequestDto> expenses) {
         log.debug("Appending {} expense(s) to Google Sheet for userId {}", expenses.size(), userId);
@@ -63,33 +60,83 @@ public class GoogleSheetsServiceImpl implements GoogleSheetsService {
             log.warn("UserId {} has no configured Google Sheet", userId);
             throw new ResourceNotFoundException("Sheet does not exist");
         }
+        Set<String> uniqueMonths = expenses.stream()
+                .map(e -> e.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+                .collect(Collectors.toSet());
 
-        String month = LocalDate.now().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-        SheetRowsDto sheetsRows = new SheetRowsDto(new ArrayList<>());
-
-        for (AddExpenseRequestDto expense : expenses) {
-
-            if (!expense.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH).equals(month)) continue;
-
-            ArrayList<String> row = new ArrayList<>();
-            String formattedDate = expense.getDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            row.add(formattedDate);
-            row.add(expense.getDescription());
-            row.add(String.valueOf(expense.getAmount()));
-            row.add(expense.getCategory());
-            sheetsRows.getValues().add(row);
-        }
-        //need to add a check for 0 rows, but again that's unlikely to happen so it will be a warn log
-        log.debug("Appending {} expense(s) for month {}", sheetsRows.getValues().size(), month);
         String token = tokenService.getAccessTokenFromUserId(userId);
+        //wrap in try/catch?
+        SheetsBatchDto.GetResponse batchGetResponse = this.restClient.get()
+                .uri(uriBuilder -> {
+                    UriBuilder builder = uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values:batchGet");
+                    for (String month : uniqueMonths) {
+                        builder.queryParam("ranges", month + "!A:A");
+                    }
+                    return builder.build();
+                })
+                .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
+                .retrieve()
+                .body(SheetsBatchDto.GetResponse.class);
+
+        Map<String, Integer> nextRowMap = new HashMap<>();
+        if (batchGetResponse != null && batchGetResponse.getValueRanges() != null) {
+            nextRowMap = batchGetResponse.getValueRanges().stream()
+                    .collect(Collectors.toMap(
+                            valueRange -> valueRange.getRange().split("!")[0],
+                            valueRange -> {
+                                List<List<String>> values = valueRange.getValues();
+                                if (values == null || values.isEmpty()) {
+                                    return 1;
+                                }
+                                return values.size() + 1;
+                            }
+                    ));
+        }
+
+        expenses.sort(Comparator.comparing(AddExpenseRequestDto::getDate));
+        Map<String, List<AddExpenseRequestDto>> expensesByMonth = expenses.stream()
+                .collect(Collectors.groupingBy(e ->
+                        e.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+                ));
+
+        List<SheetsBatchDto.ValueRange> dataList = new ArrayList<>();
+
+        for (Map.Entry<String, List<AddExpenseRequestDto>> entry : expensesByMonth.entrySet()) {
+            String month = entry.getKey();
+            List<AddExpenseRequestDto> monthExpenses = entry.getValue();
+
+            int nextRow = nextRowMap.getOrDefault(month, 1);
+
+            List<List<String>> sheetRows = new ArrayList<>();
+            for (AddExpenseRequestDto expense : monthExpenses) {
+                List<String> row = List.of(
+                        expense.getDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        expense.getDescription(),
+                        String.valueOf(expense.getAmount()),
+                        expense.getCategory()
+                );
+                sheetRows.add(row);
+            }
+
+            log.debug("Preparing {} expense(s) for month {} starting at row {}", sheetRows.size(), month, nextRow);
+            int endRow = nextRow + sheetRows.size() - 1;
+            String range = String.format("%s!A%d:D%d", month, nextRow, endRow);
+            SheetsBatchDto.ValueRange valueRange = new SheetsBatchDto.ValueRange(range, "ROWS", sheetRows);
+
+            dataList.add(valueRange);
+        }
+
+        SheetsBatchDto.UpdateRequest updateRequest = new SheetsBatchDto.UpdateRequest("USER_ENTERED", dataList);
         try {
             SheetsResponseDto response = this.restClient.post()
-                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + month + "!A:D:append")
-                            .queryParam("valueInputOption", "USER_ENTERED").build())
+                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values:batchUpdate").build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
-                    .body(sheetsRows)
-                    .retrieve().body(SheetsResponseDto.class);
-            log.info("Successfully appended {} row(s) to Google Sheet for userId {}", sheetsRows.getValues().size(), userId);
+                    .body(updateRequest)
+                    .retrieve()
+                    .body(SheetsResponseDto.class);
+
+            log.info("Successfully executed multi-sheet batch update.");
+
             return response;
         } catch (RestClientResponseException e) {
             throw new GoogleSheetsException("Failed to append rows to Google Sheet.", e);
@@ -134,34 +181,34 @@ public class GoogleSheetsServiceImpl implements GoogleSheetsService {
     }
 
     @Override
-    public Map<String, Double> getCurrentMonthExpenses(Long userId) {
+    public List<Map<String, Double>> getCurrentMonthExpenses(Long userId) {
         UserSheet sheet = sheetRepository.findByUserId(userId);
         if (sheet == null) {
             throw new ResourceNotFoundException("Sheet does not exist");
         }
 
-        int month = LocalDate.now().getMonth().getValue();
-        char col = (char) ('A' + month);
-        int rowStart = 2;
-        int rowEnd = CATEGORIES.length + 1;
-
         String token = tokenService.getAccessTokenFromUserId(userId);
         try {
             SheetRowsDto response = this.restClient.get()
-                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/" + col + rowStart + ":" + col + rowEnd).build())
+                    .uri(uriBuilder -> uriBuilder.path("/" + sheet.getSpreadsheetId() + "/values/B2:M5").queryParam("majorDimension", "COLUMNS").build())
                     .header(AppConstants.AUTHORIZATION, AppConstants.BEARER + token)
                     .retrieve().body(SheetRowsDto.class);
             if (response.getValues() == null || response.getValues().isEmpty()) {
                 log.warn("No expense summary found for current month for userId {}", userId);
             }
-            Map<String, Double> cardMap = new HashMap<>();
+
+            //gonna be list of custom objects now month string and the rest doubles
+            List<Map<String, Double>> monthlyCards = new ArrayList<>();
 
             if (response.getValues() != null && !response.getValues().isEmpty()) {
-                for (int i = 0; i < CATEGORIES.length; i++) {
-                    cardMap.put(CATEGORIES[i].toLowerCase(), Double.parseDouble(response.getValues().get(i).get(0)));
+                for (ArrayList<String> value : response.getValues()) {
+                    Map<String, Double> hm = new HashMap<>();
+                    for (int i = 0; i < CATEGORIES.length; i++)
+                        hm.put(CATEGORIES[i].toLowerCase(), Double.parseDouble(value.get(i)));
+                    monthlyCards.add(hm);
                 }
             }
-            return cardMap;
+            return monthlyCards;
         } catch (RestClientResponseException e) {
             throw new GoogleSheetsException("Failed to fetch current month expenses", e);
         }

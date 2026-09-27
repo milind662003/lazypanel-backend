@@ -6,6 +6,7 @@ import com.milind.lazypanel.dto.SheetsResponseDto;
 import com.milind.lazypanel.model.User;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public interface GoogleSheetsService {
@@ -16,5 +17,5 @@ public interface GoogleSheetsService {
 
     SheetsResponseDto createAndSetupSheet(User user);
 
-    Map<String, Double> getCurrentMonthExpenses(Long userId);
+    List<Map<String, Double>> getCurrentMonthExpenses(Long userId);
 }
